@@ -1,0 +1,28 @@
+services:
+  # Remove the Postgres service from the base file
+  postgresql: !reset null
+
+  # Add the MySQL service
+  mysql:
+    image: mysql:8
+    platform: linux/arm64
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: otelp
+      MYSQL_DATABASE: otel
+      MYSQL_USER: otelu
+      MYSQL_PASSWORD: otelp
+    ports:
+      - "3306:3306"
+
+  # Update the app service for MySQL
+  app:
+    environment:
+      DB_TYPE: mysql
+      DB_CONNECTION_STRING: mysql://otelu:otelp@mysql:3306/otel
+    depends_on:
+      postgresql: !reset [] 
+      otel-collector:
+        condition: service_started
+      mysql:
+        condition: service_started

@@ -1,0 +1,26 @@
+services:
+  # Remove the Postgres service from the base file
+  postgresql: !reset null
+
+  # Add the MongoDB service
+  mongo:
+    image: mongo:7
+    platform: linux/arm64
+    container_name: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: otelu
+      MONGO_INITDB_ROOT_PASSWORD: otelp
+    ports:
+      - "27017:27017"
+
+  # Update the app service for MongoDB
+  app:
+    environment:
+      DB_TYPE: mongo
+      DB_CONNECTION_STRING: mongodb://otelu:otelp@mongo:27017/otel
+    depends_on:
+      postgresql: !reset [] 
+      otel-collector:
+        condition: service_started
+      mongo:
+        condition: service_started

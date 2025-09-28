@@ -1,0 +1,46 @@
+services:
+  app:
+    build:
+      context: ./SampleDbApp
+      dockerfile: Dockerfile
+    platform: linux/arm64
+    container_name: app
+    deploy:
+      resources:
+        limits:
+          memory: 120M
+    restart: unless-stopped
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_TRACES_EXPORTER: otlp
+      OTEL_SERVICE_NAME: sampledbapp
+      DB_TYPE: postgres
+      DB_CONNECTION_STRING: Host=postgresql;Username=otelu;Password=otelp;Database=otel
+    depends_on:
+      otel-collector:
+        condition: service_started
+      postgresql:
+        condition: service_started
+
+  postgresql:
+    image: postgres:16
+    platform: linux/arm64
+    container_name: postgresql
+    environment:
+      POSTGRES_USER: otelu
+      POSTGRES_PASSWORD: otelp
+      POSTGRES_DB: otel
+    ports:
+      - "5432:5432"
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.135.0
+    platform: linux/arm64
+    container_name: otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317"
+      - "4318:4318"
