@@ -1,0 +1,70 @@
+services:
+  app:
+    build:
+      context: ./SampleDbApp
+      dockerfile: Dockerfile
+    platform: linux/arm64
+    container_name: app
+    deploy:
+      resources:
+        limits:
+          memory: 120M
+    restart: unless-stopped
+    environment:
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_TRACES_EXPORTER=otlp
+      - OTEL_SERVICE_NAME=sampledbapp
+      - DB_TYPE=${DB_TYPE}
+      - DB_CONNECTION_STRING=${DB_CONNECTION_STRING}
+    depends_on:
+      otel-collector:
+        condition: service_started
+
+  postgresql:
+    image: postgres:16
+    platform: linux/arm64
+    container_name: postgresql
+    environment:
+      POSTGRES_USER: otelu
+      POSTGRES_PASSWORD: otelp
+      POSTGRES_DB: otel
+    ports:
+      - "5432:5432"
+    profiles: ["postgres"]
+
+
+  mysql:
+    image: mysql:8
+    platform: linux/arm64
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: otelp
+      MYSQL_DATABASE: otel
+      MYSQL_USER: otelu
+      MYSQL_PASSWORD: otelp
+    ports:
+      - "3306:3306"
+    profiles: ["mysql"]
+
+  mongo:
+    image: mongo:7
+    platform: linux/arm64
+    container_name: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: otelu
+      MONGO_INITDB_ROOT_PASSWORD: otelp
+    ports:
+      - "27017:27017"
+    profiles: ["mongo"]
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.135.0
+    platform: linux/arm64
+    container_name: otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317"
+      - "4318:4318"
